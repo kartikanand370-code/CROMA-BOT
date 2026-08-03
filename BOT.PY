@@ -53,12 +53,12 @@ def start_keep_alive():
 
 
 # ==================== CONFIGURATION ====================
-BOT_TOKEN = "8973177478:AAGgWddIajxaKYOGnDLw0hMSoawKpDo8Qyg"
+BOT_TOKEN = "8973177478:AAG1SskJdAYIpBzc21IHmFhsx0im3zPnTEc"
 ADMIN_ID = 7485181331
 UPI_ID = "9467702174@pthdfc"
 COUPON_EXPIRY = "31 August 2026"
 
-# ==================== PRICES & STOCK ====================
+# ==================== PRICES & UPDATED STOCK ====================
 PRICES = {
     "iphone_1500": 650,  # 1500 OFF wale coupon ka price (₹650)
     "iphone17pro_3pct": 1300,  # 17 Pro 3% OFF wale coupon ka price (₹1300)
@@ -66,13 +66,18 @@ PRICES = {
 
 STOCK = {
     "iphone_1500": [
-        "CROMA-IP1500-UNIQUE-1",
-        "CROMA-IP1500-UNIQUE-2",
-        "CROMA-IP1500-UNIQUE-3",
+        "CTSIPHZUJGQ",
+        "CTSIPH7Z4JD",
+        "CTSIPHUTGOI",
+        "CTSIPHFK1Q9",
+        "CTSIPHKZY3R",
     ],
     "iphone17pro_3pct": [
-        "CROMA-IP17PRO-UNIQUE-1",
-        "CROMA-IP17PRO-UNIQUE-2",
+        "CTSLTP09BLL",
+        "CTSLTPY0M9D",
+        "CTSLTP87YJT",
+        "CTSLTP9LFR4",
+        "CTSLTPGPCMO",
     ],
 }
 
