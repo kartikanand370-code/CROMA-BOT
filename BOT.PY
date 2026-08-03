@@ -1,4 +1,7 @@
 import logging
+import os
+from threading import Thread
+from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
@@ -9,6 +12,26 @@ from telegram.ext import (
     filters,
 )
 
+# ==================== DUMMY WEB SERVER FOR RENDER ====================
+app = Flask("")
+
+
+@app.route("/")
+def home():
+    return "Bot is Alive!"
+
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+
+
+def keep_alive():
+    t = Thread(target=run_flask)
+    t.daemon = True
+    t.start()
+
+
 # ==================== CONFIGURATION ====================
 BOT_TOKEN = "8973177478:AAGgWddIajxaKYOGnDLw0hMSoawKpDo8Qyg"
 ADMIN_ID = 7485181331
@@ -17,19 +40,19 @@ COUPON_EXPIRY = "31 August 2026"
 
 # ==================== PRICES & STOCK ====================
 PRICES = {
-    "iphone_1500": 650,        # 1500 OFF wale coupon ka price (₹650)
-    "iphone17pro_3pct": 1300   # 17 Pro 3% OFF wale coupon ka price (₹1300)
+    "iphone_1500": 650,  # 1500 OFF wale coupon ka price (₹650)
+    "iphone17pro_3pct": 1300,  # 17 Pro 3% OFF wale coupon ka price (₹1300)
 }
 
 STOCK = {
     "iphone_1500": [
-        "CTSI17XXLGRCNJ",
-        "CTSI17XXLGRCNJ",
-        "CTSI17XXLGRCNJ",
+        "CROMA-IP1500-UNIQUE-1",
+        "CROMA-IP1500-UNIQUE-2",
+        "CROMA-IP1500-UNIQUE-3",
     ],
     "iphone17pro_3pct": [
-        "CTSI17RQVJDQIB",
-        "CTSI17XXLGRCNJ",
+        "CROMA-IP17PRO-UNIQUE-1",
+        "CROMA-IP17PRO-UNIQUE-2",
     ],
 }
 
@@ -38,6 +61,15 @@ USER_ORDERS = {}
 # Clean Logs Setup
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+# Helper function to name coupons easily
+def get_coupon_name(c_type):
+    return (
+        "Flat ₹1500 OFF on iPhone"
+        if c_type == "iphone_1500"
+        else "3% OFF on iPhone 17 Pro models"
+    )
 
 
 # /start Command
@@ -61,15 +93,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.message:
         await update.message.reply_text(
-            text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
         )
     elif update.callback_query:
         await update.callback_query.message.reply_text(
-            text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown"
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
         )
 
 
-# Coupon Selection Handler (Text Only)
+# Coupon Selection Handler
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -87,6 +123,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.reply_text(
                 "❌ Sorry Sir! Ye coupon abhi Out of Stock hai."
             )
+
+            # Alert Admin if user tries to buy out of stock item
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=f"⚠️ **STOCK ALERT:** User `{user_id}` ne **{get_coupon_name(coupon_type)}** buy karne ki koshish ki, par wo **Out of Stock** hai! Kripya naye coupons add karein.",
+                parse_mode="Markdown",
+            )
             return
 
         USER_ORDERS[user_id] = {
@@ -94,11 +137,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "step": "WAITING_FOR_QUANTITY",
         }
 
-        c_title = (
-            "Flat ₹1500 OFF on iPhone"
-            if coupon_type == "iphone_1500"
-            else "3% OFF on iPhone 17 Pro models"
-        )
+        c_title = get_coupon_name(coupon_type)
 
         message_text = (
             f"🎟 **{c_title}**\n\n"
@@ -111,7 +150,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(message_text, parse_mode="Markdown")
 
 
-# Message Handler (Quantity & Payment Proof)
+# Message Handler
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text = update.message.text.strip() if update.message.text else ""
@@ -139,11 +178,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             order["amount"] = total
             order["step"] = "WAITING_FOR_PAYMENT"
 
-            c_name = (
-                "iPhone ₹1500 OFF"
-                if c_type == "iphone_1500"
-                else "iPhone 17 Pro 3% OFF"
-            )
+            c_name = get_coupon_name(c_type)
 
             pay_msg = (
                 f"📋 **Order Details:**\n"
@@ -176,11 +211,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         ]
 
-        c_name = (
-            "iPhone ₹1500 OFF"
-            if order["type"] == "iphone_1500"
-            else "iPhone 17 Pro 3% OFF"
-        )
+        c_name = get_coupon_name(order["type"])
         admin_msg = (
             f"🚨 **NEW PAYMENT RECEIVED**\n\n"
             f"👤 User ID: `{user_id}`\n"
@@ -217,7 +248,9 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_user_id = int(target_user_id)
 
     if target_user_id not in USER_ORDERS:
-        await query.message.reply_text("⚠️ Order session expired ya already process ho chuka hai!")
+        await query.message.reply_text(
+            "⚠️ Order session expired ya already process ho chuka hai!"
+        )
         return
 
     order = USER_ORDERS[target_user_id]
@@ -229,19 +262,43 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             delivered = [STOCK[c_type].pop(0) for _ in range(qty)]
             coupons_txt = "\n".join([f"`{c}`" for c in delivered])
 
+            # Send coupons to User
             await context.bot.send_message(
                 chat_id=target_user_id,
                 text=f"🎉 **Payment Verified!**\n\nAapke Coupons (Valid till {COUPON_EXPIRY}):\n{coupons_txt}\n\nDhanyawad! /start se naya order kar sakte hain.",
                 parse_mode="Markdown",
             )
 
-            updated_text = (query.message.caption or query.message.text) + f"\n\n✅ **APPROVED ({qty} coupons sent)**"
+            # Update Admin Message
+            updated_text = (
+                query.message.caption or query.message.text
+            ) + f"\n\n✅ **APPROVED ({qty} coupons sent)**"
             if query.message.photo:
                 await query.edit_message_caption(caption=updated_text)
             else:
                 await query.edit_message_text(text=updated_text)
+
+            # --- AUTOMATIC STOCK CHECK & ADMIN ALERT ---
+            remaining_stock = len(STOCK[c_type])
+            c_name = get_coupon_name(c_type)
+
+            if remaining_stock == 0:
+                await context.bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=f"🚨 **OUT OF STOCK ALERT!** 🚨\n\n**{c_name}** ke saare coupons khatam ho chuke hain (`0` bache hain)!\n\n⚠️ Kripya code update karke naye coupons add karein.",
+                    parse_mode="Markdown",
+                )
+            elif remaining_stock <= 1:
+                await context.bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=f"⚠️ **LOW STOCK WARNING!**\n\n**{c_name}** ka sirf `{remaining_stock}` coupon bacha hai. Jaldi new stock add karein!",
+                    parse_mode="Markdown",
+                )
+
         else:
-            await query.message.reply_text("❌ Stock khatam ho gaya hai! Pehle code me stock badhayein.")
+            await query.message.reply_text(
+                "❌ Stock khatam ho gaya hai! Pehle code me stock badhayein."
+            )
 
         del USER_ORDERS[target_user_id]
 
@@ -251,7 +308,9 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="❌ Payment verification failed. Kripya correct screenshot ya UTR bhejien.",
         )
 
-        updated_text = (query.message.caption or query.message.text) + "\n\n❌ **REJECTED**"
+        updated_text = (
+            query.message.caption or query.message.text
+        ) + "\n\n❌ **REJECTED**"
         if query.message.photo:
             await query.edit_message_caption(caption=updated_text)
         else:
@@ -261,12 +320,17 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
+    # Start Dummy Web Server for Render Free Web Service
+    keep_alive()
+
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(admin_callback, pattern="^(app|rej)_"))
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, message_handler))
+    app.add_handler(
+        MessageHandler(filters.ALL & ~filters.COMMAND, message_handler)
+    )
 
     print("Bot is Running Successfully...")
     app.run_polling()
