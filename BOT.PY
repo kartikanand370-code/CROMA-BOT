@@ -206,18 +206,23 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             c_name = get_coupon_name(c_type)
 
+            # Dynamic QR Code URL generation with exact amount (Without showing UPI text)
+            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=upi://pay?pa={UPI_ID}%26pn=CromaStore%26am={total}"
+
             pay_msg = (
                 f"📋 **Order Details:**\n"
                 f"🎟 Coupon: {c_name}\n"
                 f"🔢 Quantity: {qty}\n"
                 f"⏳ Expiry: {COUPON_EXPIRY}\n"
-                f"💵 Total: **₹{total}**\n\n"
-                f"💳 **Pay Using UPI:**\n"
-                f"UPI ID: `{UPI_ID}`\n\n"
+                f"💵 Total Amount: **₹{total}**\n\n"
+                f"📲 **Scan QR Code to Pay ₹{total}**\n\n"
                 f"Payment karne ke baad yahan **12-Digit UTR Number** ya **Payment Screenshot** bhej dein."
                 f"{FOOTER_TEXT}"
             )
-            await update.message.reply_text(pay_msg, parse_mode="Markdown")
+
+            await update.message.reply_photo(
+                photo=qr_url, caption=pay_msg, parse_mode="Markdown"
+            )
 
     elif order.get("step") == "WAITING_FOR_PAYMENT":
         order["step"] = "VERIFYING"
@@ -227,11 +232,11 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
-        # Extracting User Details
         full_name = user.full_name or "Unknown User"
-        username_str = f"@{user.username}" if user.username else "No Username Set"
+        username_str = (
+            f"@{user.username}" if user.username else "No Username Set"
+        )
 
-        # Direct chat URL format
         direct_chat_url = (
             f"https://t.me/{user.username}"
             if user.username
@@ -247,11 +252,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "❌ Reject", callback_data=f"rej_{user_id}"
                 ),
             ],
-            [
-                InlineKeyboardButton(
-                    "💬 Direct Chat User", url=direct_chat_url
-                )
-            ],
+            [InlineKeyboardButton("💬 Direct Chat User", url=direct_chat_url)],
         ]
 
         c_name = get_coupon_name(order["type"])
