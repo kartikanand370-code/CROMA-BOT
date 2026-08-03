@@ -99,7 +99,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(
-                f"📱 Flat ₹1500 OFF on iPhone - ₹{PRICES['iphone_1500']}",
+                f"📱 Flat ₹1500 OFF on iPhone15,16,16Plus - ₹{PRICES['iphone_1500']}",
                 callback_data="select_iphone_1500",
             )
         ],
