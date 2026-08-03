@@ -62,8 +62,8 @@ FOOTER_TEXT = "\n\n💬 **Need help? Contact Admin:** @Kartikji3009"
 
 # ==================== PRICES & STOCK ====================
 PRICES = {
-    "iphone_1500": 500,
-    "iphone17pro_3pct": 1500,
+    "iphone_1500": 400,
+    "iphone17pro_3pct": 1100,
 }
 
 STOCK = {
