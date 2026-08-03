@@ -177,7 +177,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+    user = update.message.from_user
+    user_id = user.id
     text = update.message.text.strip() if update.message.text else ""
 
     if user_id not in USER_ORDERS:
@@ -226,6 +227,17 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
+        # Extracting User Details
+        full_name = user.full_name or "Unknown User"
+        username_str = f"@{user.username}" if user.username else "No Username Set"
+
+        # Direct chat URL format
+        direct_chat_url = (
+            f"https://t.me/{user.username}"
+            if user.username
+            else f"tg://user?id={user_id}"
+        )
+
         admin_btn = [
             [
                 InlineKeyboardButton(
@@ -234,17 +246,24 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton(
                     "❌ Reject", callback_data=f"rej_{user_id}"
                 ),
-            ]
+            ],
+            [
+                InlineKeyboardButton(
+                    "💬 Direct Chat User", url=direct_chat_url
+                )
+            ],
         ]
 
         c_name = get_coupon_name(order["type"])
         admin_msg = (
             f"🚨 **NEW PAYMENT RECEIVED**\n\n"
-            f"👤 User ID: `{user_id}`\n"
-            f"🎟 Type: {c_name}\n"
-            f"🔢 Quantity: {order['qty']}\n"
-            f"💵 Amount: ₹{order['amount']}\n"
-            f"💬 UTR/Text: {text}"
+            f"👤 **Name:** {full_name}\n"
+            f"🆔 **User ID:** `{user_id}`\n"
+            f"🌐 **Username:** {username_str}\n"
+            f"🎟 **Coupon:** {c_name}\n"
+            f"🔢 **Quantity:** {order['qty']}\n"
+            f"💵 **Amount:** ₹{order['amount']}\n"
+            f"💬 **UTR/Msg:** {text if text else 'Photo Attached'}"
         )
 
         if update.message.photo:
