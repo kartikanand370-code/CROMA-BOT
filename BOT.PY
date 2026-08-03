@@ -30,8 +30,10 @@ def run_flask():
 
 def self_ping_loop():
     time.sleep(5)
-    port = int(os.environ.get("PORT", 8080))
-    url = f"http://127.0.0.1:{port}/"
+    url = os.environ.get(
+        "RENDER_EXTERNAL_URL",
+        f"http://127.0.0.1:{os.environ.get('PORT', 8080)}/",
+    )
 
     while True:
         try:
@@ -52,11 +54,11 @@ def start_keep_alive():
 
 
 # ==================== CONFIGURATION ====================
-# Token is safely pulled from Render Environment Variables
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = 7485181331
 UPI_ID = "9467702174@pthdfc"
 COUPON_EXPIRY = "31 August 2026"
+FOOTER_TEXT = "\n\n💬 **Need help? Contact Admin:** @Kartikji3009"
 
 # ==================== PRICES & STOCK ====================
 PRICES = {
@@ -83,8 +85,10 @@ STOCK = {
 
 USER_ORDERS = {}
 
-logging.basicConfig(level=logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
 
 
 def get_coupon_name(c_type):
@@ -111,7 +115,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
     ]
 
-    text = f"Hello Sir! 👋\n\n⏰ **All Coupons Valid Till: {COUPON_EXPIRY}**\n\nAapko Croma ka kaun sa coupon chahiye? Niche button daba kar select karein:"
+    text = f"Hello Sir! 👋\n\n⏰ **All Coupons Valid Till: {COUPON_EXPIRY}**\n\nAapko Croma ka kaun sa coupon chahiye? Niche button daba kar select karein:{FOOTER_TEXT}"
 
     if update.message:
         await update.message.reply_text(
@@ -142,7 +146,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if len(STOCK[coupon_type]) == 0:
             await query.message.reply_text(
-                "❌ Sorry Sir! Ye coupon abhi Out of Stock hai."
+                f"❌ Sorry Sir! Ye coupon abhi Out of Stock hai.{FOOTER_TEXT}",
+                parse_mode="Markdown",
             )
 
             await context.bot.send_message(
@@ -165,6 +170,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💰 Price: ₹{PRICES[coupon_type]}/coupon\n"
             f"⏳ Expiry: **{COUPON_EXPIRY}**\n\n"
             f"Sir, kitni quantity chahiye? Number enter karein (e.g. 1, 2, 3):"
+            f"{FOOTER_TEXT}"
         )
 
         await query.message.reply_text(message_text, parse_mode="Markdown")
@@ -187,7 +193,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if qty > available:
                 await update.message.reply_text(
-                    f"⚠️ Stock me sirf {available} coupons bache hain!"
+                    f"⚠️ Stock me sirf {available} coupons bache hain!{FOOTER_TEXT}",
+                    parse_mode="Markdown",
                 )
                 return
 
@@ -207,6 +214,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"💳 **Pay Using UPI:**\n"
                 f"UPI ID: `{UPI_ID}`\n\n"
                 f"Payment karne ke baad yahan **12-Digit UTR Number** ya **Payment Screenshot** bhej dein."
+                f"{FOOTER_TEXT}"
             )
             await update.message.reply_text(pay_msg, parse_mode="Markdown")
 
@@ -214,7 +222,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         order["step"] = "VERIFYING"
 
         await update.message.reply_text(
-            "⏳ Payment details mil gayi hain. Admin verify karke aapko coupon bhej denge..."
+            f"⏳ Payment details mil gayi hain. Admin verify karke aapko coupon bhej denge...{FOOTER_TEXT}",
+            parse_mode="Markdown",
         )
 
         admin_btn = [
@@ -280,7 +289,7 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await context.bot.send_message(
                 chat_id=target_user_id,
-                text=f"🎉 **Payment Verified!**\n\nAapke Coupons (Valid till {COUPON_EXPIRY}):\n{coupons_txt}\n\nDhanyawad! /start se naya order kar sakte hain.",
+                text=f"🎉 **Payment Verified!**\n\nAapke Coupons (Valid till {COUPON_EXPIRY}):\n{coupons_txt}\n\nDhanyawad! /start se naya order kar sakte hain.{FOOTER_TEXT}",
                 parse_mode="Markdown",
             )
 
@@ -318,7 +327,8 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif action == "rej":
         await context.bot.send_message(
             chat_id=target_user_id,
-            text="❌ Payment verification failed. Kripya correct screenshot ya UTR bhejien.",
+            text=f"❌ Payment verification failed. Kripya correct screenshot ya UTR bhejien.{FOOTER_TEXT}",
+            parse_mode="Markdown",
         )
 
         updated_text = (
@@ -348,8 +358,8 @@ def main():
         MessageHandler(filters.ALL & ~filters.COMMAND, message_handler)
     )
 
-    print("Bot is Running Successfully...")
-    app.run_polling()
+    print("Bot is Starting Polling...")
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
