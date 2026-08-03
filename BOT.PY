@@ -1,6 +1,8 @@
 import logging
 import os
+import time
 from threading import Thread
+import requests
 from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -12,13 +14,13 @@ from telegram.ext import (
     filters,
 )
 
-# ==================== DUMMY WEB SERVER FOR RENDER ====================
+# ==================== DUMMY WEB SERVER & AUTO KEEP-ALIVE ====================
 app = Flask("")
 
 
 @app.route("/")
 def home():
-    return "Bot is Alive!"
+    return "Bot is Active and Running!"
 
 
 def run_flask():
@@ -26,10 +28,28 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 
 
-def keep_alive():
-    t = Thread(target=run_flask)
-    t.daemon = True
-    t.start()
+# 15-second Self Ping Thread to keep Render awake forever
+def self_ping_loop():
+    time.sleep(5)  # Wait for flask to start
+    port = int(os.environ.get("PORT", 8080))
+    url = f"http://127.0.0.1:{port}/"
+
+    while True:
+        try:
+            requests.get(url, timeout=5)
+        except Exception:
+            pass
+        time.sleep(15)  # Ping every 15 seconds
+
+
+def start_keep_alive():
+    t_flask = Thread(target=run_flask)
+    t_flask.daemon = True
+    t_flask.start()
+
+    t_ping = Thread(target=self_ping_loop)
+    t_ping.daemon = True
+    t_ping.start()
 
 
 # ==================== CONFIGURATION ====================
@@ -63,7 +83,6 @@ logging.basicConfig(level=logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-# Helper function to name coupons easily
 def get_coupon_name(c_type):
     return (
         "Flat ₹1500 OFF on iPhone"
@@ -124,10 +143,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "❌ Sorry Sir! Ye coupon abhi Out of Stock hai."
             )
 
-            # Alert Admin if user tries to buy out of stock item
+            # Alert Admin when user hits out of stock
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
-                text=f"⚠️ **STOCK ALERT:** User `{user_id}` ne **{get_coupon_name(coupon_type)}** buy karne ki koshish ki, par wo **Out of Stock** hai! Kripya naye coupons add karein.",
+                text=f"⚠️ **STOCK ALERT:** User `{user_id}` ne **{get_coupon_name(coupon_type)}** buy karne ki koshish ki, par wo **Out of Stock** hai!",
                 parse_mode="Markdown",
             )
             return
@@ -278,20 +297,20 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await query.edit_message_text(text=updated_text)
 
-            # --- AUTOMATIC STOCK CHECK & ADMIN ALERT ---
+            # Stock Alert Check
             remaining_stock = len(STOCK[c_type])
             c_name = get_coupon_name(c_type)
 
             if remaining_stock == 0:
                 await context.bot.send_message(
                     chat_id=ADMIN_ID,
-                    text=f"🚨 **OUT OF STOCK ALERT!** 🚨\n\n**{c_name}** ke saare coupons khatam ho chuke hain (`0` bache hain)!\n\n⚠️ Kripya code update karke naye coupons add karein.",
+                    text=f"🚨 **OUT OF STOCK ALERT!** 🚨\n\n**{c_name}** ke saare coupons khatam ho chuke hain (`0` bache hain)!",
                     parse_mode="Markdown",
                 )
             elif remaining_stock <= 1:
                 await context.bot.send_message(
                     chat_id=ADMIN_ID,
-                    text=f"⚠️ **LOW STOCK WARNING!**\n\n**{c_name}** ka sirf `{remaining_stock}` coupon bacha hai. Jaldi new stock add karein!",
+                    text=f"⚠️ **LOW STOCK WARNING!**\n\n**{c_name}** ka sirf `{remaining_stock}` coupon bacha hai.",
                     parse_mode="Markdown",
                 )
 
@@ -320,8 +339,8 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    # Start Dummy Web Server for Render Free Web Service
-    keep_alive()
+    # Start Web Server & 15-second Keep-Alive Self Ping Thread
+    start_keep_alive()
 
     app = Application.builder().token(BOT_TOKEN).build()
 
