@@ -28,9 +28,8 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 
 
-# 15-second Self Ping Thread to keep Render awake forever
 def self_ping_loop():
-    time.sleep(5)  # Wait for flask to start
+    time.sleep(5)
     port = int(os.environ.get("PORT", 8080))
     url = f"http://127.0.0.1:{port}/"
 
@@ -39,7 +38,7 @@ def self_ping_loop():
             requests.get(url, timeout=5)
         except Exception:
             pass
-        time.sleep(15)  # Ping every 15 seconds
+        time.sleep(15)
 
 
 def start_keep_alive():
@@ -53,15 +52,16 @@ def start_keep_alive():
 
 
 # ==================== CONFIGURATION ====================
-BOT_TOKEN = "8973177478:AAEwzy7V4uo-DwItBM0UM0mcMx7HUt_6Fb4"
+# Token is safely pulled from Render Environment Variables
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 ADMIN_ID = 7485181331
 UPI_ID = "9467702174@pthdfc"
 COUPON_EXPIRY = "31 August 2026"
 
-# ==================== PRICES & UPDATED STOCK ====================
+# ==================== PRICES & STOCK ====================
 PRICES = {
-    "iphone_1500": 650,  # 1500 OFF wale coupon ka price (₹650)
-    "iphone17pro_3pct": 1300,  # 17 Pro 3% OFF wale coupon ka price (₹1300)
+    "iphone_1500": 650,
+    "iphone17pro_3pct": 1300,
 }
 
 STOCK = {
@@ -83,7 +83,6 @@ STOCK = {
 
 USER_ORDERS = {}
 
-# Clean Logs Setup
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -96,7 +95,6 @@ def get_coupon_name(c_type):
     )
 
 
-# /start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
@@ -129,7 +127,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-# Coupon Selection Handler
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -148,7 +145,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "❌ Sorry Sir! Ye coupon abhi Out of Stock hai."
             )
 
-            # Alert Admin when user hits out of stock
             await context.bot.send_message(
                 chat_id=ADMIN_ID,
                 text=f"⚠️ **STOCK ALERT:** User `{user_id}` ne **{get_coupon_name(coupon_type)}** buy karne ki koshish ki, par wo **Out of Stock** hai!",
@@ -174,7 +170,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text(message_text, parse_mode="Markdown")
 
 
-# Message Handler
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text = update.message.text.strip() if update.message.text else ""
@@ -184,7 +179,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     order = USER_ORDERS[user_id]
 
-    # Step 1: User enters Quantity
     if order.get("step") == "WAITING_FOR_QUANTITY":
         if text.isdigit() and int(text) > 0:
             qty = int(text)
@@ -216,7 +210,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await update.message.reply_text(pay_msg, parse_mode="Markdown")
 
-    # Step 2: User sends Payment Proof
     elif order.get("step") == "WAITING_FOR_PAYMENT":
         order["step"] = "VERIFYING"
 
@@ -262,7 +255,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
 
-# Admin Action (Approve / Reject)
 async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -286,14 +278,12 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             delivered = [STOCK[c_type].pop(0) for _ in range(qty)]
             coupons_txt = "\n".join([f"`{c}`" for c in delivered])
 
-            # Send coupons to User
             await context.bot.send_message(
                 chat_id=target_user_id,
                 text=f"🎉 **Payment Verified!**\n\nAapke Coupons (Valid till {COUPON_EXPIRY}):\n{coupons_txt}\n\nDhanyawad! /start se naya order kar sakte hain.",
                 parse_mode="Markdown",
             )
 
-            # Update Admin Message
             updated_text = (
                 query.message.caption or query.message.text
             ) + f"\n\n✅ **APPROVED ({qty} coupons sent)**"
@@ -302,7 +292,6 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await query.edit_message_text(text=updated_text)
 
-            # Stock Alert Check
             remaining_stock = len(STOCK[c_type])
             c_name = get_coupon_name(c_type)
 
@@ -344,8 +333,11 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    # Start Web Server & 15-second Keep-Alive Self Ping Thread
     start_keep_alive()
+
+    if not BOT_TOKEN:
+        print("ERROR: BOT_TOKEN is missing from Environment Variables!")
+        return
 
     app = Application.builder().token(BOT_TOKEN).build()
 
