@@ -53,7 +53,7 @@ def start_keep_alive():
 
 
 # ==================== CONFIGURATION ====================
-BOT_TOKEN = "8973177478:AAG1SskJdAYIpBzc21IHmFhsx0im3zPnTEc"
+BOT_TOKEN = "8973177478:AAEwzy7V4uo-DwItBM0UM0mcMx7HUt_6Fb4"
 ADMIN_ID = 7485181331
 UPI_ID = "9467702174@pthdfc"
 COUPON_EXPIRY = "31 August 2026"
