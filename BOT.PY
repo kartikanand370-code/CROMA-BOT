@@ -64,6 +64,7 @@ FOOTER_TEXT = "\n\n💬 **Need help? Contact Admin:** @Kartikji3009"
 PRICES = {
     "iphone_1500": 400,
     "iphone17pro_3pct": 1200,
+    "android_5pct": 500,
 }
 
 STOCK = {
@@ -81,6 +82,61 @@ STOCK = {
         "CTSLTP9LFR4",
         "CTSLTPGPCMO",
     ],
+    "android_5pct": [
+        "CTSANDUBFKF",
+        "CTSAND8MFNR",
+        "CTSANDXMQ12",
+        "CTSANDDTNPS",
+        "CTSANDM4QE9",
+        "CTSANDOT2SQ",
+        "CTSANDNYJ14",
+        "CTSANDAIAMB",
+        "CTSAND4IYTU",
+        "CTSAND7UTTD",
+        "CTSAND4BVM2",
+        "CTSANDLWMOA",
+        "CTSANDESKG3",
+        "CTSANDY6WWQ",
+        "CTSANDA5MF3",
+        "CTSAND5KRB6",
+        "CTSAND5RAXK",
+        "CTSANDDZQA2",
+        "CTSANDKTQNH",
+        "CTSANDWUPGC",
+        "CTSANDNYGE6",
+        "CTSANDG7R8X",
+        "CTSANDSML24",
+        "CTSANDCN1AC",
+        "CTSAND60RCH",
+        "CTSANDP60MN",
+        "CTSAND0DG00",
+        "CTSANDTAEUE",
+        "CTSANDOKV7O",
+        "CTSANDFDRPA",
+        "CTSANDPQNWU",
+        "CTSANDJAAVZ",
+        "CTSAND6QWRY",
+        "CTSANDVPKBU",
+        "CTSANDXA17D",
+        "CTSAND43MUI",
+        "CTSAND7I5GQ",
+        "CTSAND3KY8T",
+        "CTSANDGUTHG",
+        "CTSAND7FWF1",
+        "CTSAND2FEAK",
+        "CTSANDI1K27",
+        "CTSAND5G9MT",
+        "CTSANDLVF9Q",
+        "CTSAND0PJMK",
+        "CTSAND3X3FO",
+        "CTSANDGLMGA",
+        "CTSANDE451I",
+        "CTSAND38D27",
+        "CTSAND187VW",
+        "CTSAND73063",
+        "CTSAND88225",
+        "CTSANDPBPQB",
+    ],
 }
 
 USER_ORDERS = {}
@@ -92,11 +148,13 @@ logging.basicConfig(
 
 
 def get_coupon_name(c_type):
-    return (
-        "Flat ₹1500 OFF on iPhone"
-        if c_type == "iphone_1500"
-        else "3% OFF on iPhone 17 Pro models"
-    )
+    if c_type == "iphone_1500":
+        return "Flat ₹1500 OFF on iPhone"
+    elif c_type == "iphone17pro_3pct":
+        return "3% OFF on iPhone 17 Pro models"
+    elif c_type == "android_5pct":
+        return "5% OFF on android smartphone"
+    return "Coupon"
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -111,6 +169,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton(
                 f"📲 3% OFF on iPhone 17 Pro models - ₹{PRICES['iphone17pro_3pct']}",
                 callback_data="select_iphone17pro_3pct",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                f"🤖 5% OFF on android smartphone - ₹{PRICES['android_5pct']}",
+                callback_data="select_android_5pct",
             )
         ],
     ]
@@ -137,12 +201,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = query.from_user.id
 
-    if query.data in ["select_iphone_1500", "select_iphone17pro_3pct"]:
-        coupon_type = (
-            "iphone_1500"
-            if query.data == "select_iphone_1500"
-            else "iphone17pro_3pct"
-        )
+    if query.data in [
+        "select_iphone_1500",
+        "select_iphone17pro_3pct",
+        "select_android_5pct",
+    ]:
+        if query.data == "select_iphone_1500":
+            coupon_type = "iphone_1500"
+        elif query.data == "select_iphone17pro_3pct":
+            coupon_type = "iphone17pro_3pct"
+        else:
+            coupon_type = "android_5pct"
 
         if len(STOCK[coupon_type]) == 0:
             await query.message.reply_text(
