@@ -1,3 +1,5 @@
-python-telegram-bot==22.8
-flask
+selenium
+webdriver-manager
 requests
+flask
+python-telegram-bot
