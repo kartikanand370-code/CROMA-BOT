@@ -1,7 +1,13 @@
-import logging
 import os
+import json
 import time
+import imaplib
+import email
+import re
+import sys
+from datetime import datetime, timedelta
 from threading import Thread
+import logging
 import requests
 from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -13,6 +19,13 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 # ==================== DUMMY WEB SERVER & AUTO KEEP-ALIVE ====================
 app = Flask("")
@@ -136,6 +149,26 @@ STOCK = {
         "CTSAND73063",
         "CTSAND88225",
         "CTSANDPBPQB",
+        "CTSANDU2R3V",
+        "CTSANDRRBG8",
+        "CTSAND8J5KT",
+        "CTSANDXW41P",
+        "CTSANDC0H3G",
+        "CTSAND61884",
+        "CTSAND77704",
+        "CTSANDKJDML",
+        "CTSANDIZZZC",
+        "CTSANDIKK8O",
+        "CTSANDKPF4C",
+        "CTSAND5DXIP",
+        "CTSANDOAQT3",
+        "CTSANDOO8VV",
+        "CTSAND5PPYG",
+        "CTSANDMLS57",
+        "CTSANDFFFW2",
+        "CTSAND7LOLW",
+        "CTSANDWMF0K",
+        "CTSAND0ND05",
     ],
 }
 
@@ -275,7 +308,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             c_name = get_coupon_name(c_type)
 
-            # Dynamic QR Code URL generation with exact amount (Without showing UPI text)
             qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=upi://pay?pa={UPI_ID}%26pn=CromaStore%26am={total}"
 
             pay_msg = (
