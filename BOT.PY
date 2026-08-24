@@ -1,15 +1,21 @@
-import os
-import json
-import time
-import imaplib
 import email
+import imaplib
+import json
+import logging
+import os
 import re
 import sys
+import time
 from datetime import datetime, timedelta
 from threading import Thread
-import logging
-import requests
 from flask import Flask
+import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
@@ -19,12 +25,6 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 # ==================== DUMMY WEB SERVER & AUTO KEEP-ALIVE ====================
@@ -96,79 +96,30 @@ STOCK = {
         "CTSLTPGPCMO",
     ],
     "android_5pct": [
-        "CTSANDUBFKF",
-        "CTSAND8MFNR",
-        "CTSANDXMQ12",
-        "CTSANDDTNPS",
-        "CTSANDM4QE9",
-        "CTSANDOT2SQ",
-        "CTSANDNYJ14",
-        "CTSANDAIAMB",
-        "CTSAND4IYTU",
-        "CTSAND7UTTD",
-        "CTSAND4BVM2",
-        "CTSANDLWMOA",
-        "CTSANDESKG3",
-        "CTSANDY6WWQ",
-        "CTSANDA5MF3",
-        "CTSAND5KRB6",
-        "CTSAND5RAXK",
-        "CTSANDDZQA2",
-        "CTSANDKTQNH",
-        "CTSANDWUPGC",
-        "CTSANDNYGE6",
-        "CTSANDG7R8X",
-        "CTSANDSML24",
-        "CTSANDCN1AC",
-        "CTSAND60RCH",
-        "CTSANDP60MN",
-        "CTSAND0DG00",
-        "CTSANDTAEUE",
-        "CTSANDOKV7O",
-        "CTSANDFDRPA",
-        "CTSANDPQNWU",
-        "CTSANDJAAVZ",
-        "CTSAND6QWRY",
-        "CTSANDVPKBU",
-        "CTSANDXA17D",
-        "CTSAND43MUI",
-        "CTSAND7I5GQ",
-        "CTSAND3KY8T",
-        "CTSANDGUTHG",
-        "CTSAND7FWF1",
-        "CTSAND2FEAK",
-        "CTSANDI1K27",
-        "CTSAND5G9MT",
-        "CTSANDLVF9Q",
-        "CTSAND0PJMK",
-        "CTSAND3X3FO",
-        "CTSANDGLMGA",
-        "CTSANDE451I",
-        "CTSAND38D27",
-        "CTSAND187VW",
-        "CTSAND73063",
-        "CTSAND88225",
-        "CTSANDPBPQB",
-        "CTSANDU2R3V",
-        "CTSANDRRBG8",
-        "CTSAND8J5KT",
-        "CTSANDXW41P",
-        "CTSANDC0H3G",
-        "CTSAND61884",
-        "CTSAND77704",
-        "CTSANDKJDML",
-        "CTSANDIZZZC",
-        "CTSANDIKK8O",
-        "CTSANDKPF4C",
-        "CTSAND5DXIP",
-        "CTSANDOAQT3",
-        "CTSANDOO8VV",
-        "CTSAND5PPYG",
-        "CTSANDMLS57",
-        "CTSANDFFFW2",
-        "CTSAND7LOLW",
-        "CTSANDWMF0K",
-        "CTSAND0ND05",
+        "CTSANDILH2H",
+        "CTSAND4Z46N",
+        "CTSANDYWIW9",
+        "CTSAND9MKV0",
+        "CTSANDYSRN8",
+        "CTSANDQRH6P",
+        "CTSAND1LE1K",
+        "CTSANDFS0HO",
+        "CTSANDUNI45",
+        "CTSANDHRMUB",
+        "CTSANDWT5JL",
+        "CTSANDZHUZV",
+        "CTSANDGC5ZT",
+        "CTSANDTI421",
+        "CTSANDMOBR3",
+        "CTSANDGDY97",
+        "CTSANDHTM93",
+        "CTSANDNHQ2J",
+        "CTSANDJF6M7",
+        "CTSANDBE626",
+        "CTSANDAPM0X",
+        "CTSAND3AOQP",
+        "CTSANDLY1J2",
+        "CTSANDJ3KAI",
     ],
 }
 
